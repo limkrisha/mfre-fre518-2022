@@ -156,3 +156,28 @@ fviz_cluster(k5, data = ford_psyc)
 ```
 
 
+# Optimal clusters
+
+The **Elbow Method** suggests that 4 is the optimal number of clusters as this appears to be the bend in the graph. 
+
+```{r}
+set.seed(2022)
+
+fviz_nbclust(ford_psyc, kmeans, method = "wss")
+```
+
+The **Silhouette Method** suggests that
+
+```{r}
+fviz_nbclust(ford_psyc, kmeans, method = "silhouette")
+```
+
+The **gap statistic method** 
+
+```{r, message = F}
+set.seed(2022)
+gap_stat <- clusGap(ford_psyc, FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50)
+
+fviz_gap_stat(gap_stat)
+```

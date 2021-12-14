@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 First we load the packages we will use for this analysis.
 
 ```{r}
-pacman::p_load(dplyr, tidyverse, ggplot2, here, readxl, janitor, modelsummary, kableExtra, cluster, factoextra)
+pacman::p_load(dplyr, tidyverse, ggplot2, here, readxl, janitor, modelsummary, kableExtra, cluster, factoextra, readr)
 ```
 
 The dataset for this case study is from the CIAT - International Center for Tropical Agriculture downloaded from the [Harvard Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FMGTQF). The data comes from a survey questionnaire administered to 354 randomly selected meat consumers in Cali, Popayan, and in the municipalities of Mercaderes and Patia in Colombia. 
@@ -21,4 +21,102 @@ The dataset for this case study is from the CIAT - International Center for Trop
 ```{r}
 beef <- read.csv(here("data", "beef_consumerdata.csv")) %>%
   clean_names()
+```
+
+I converted the relevant variables into a factor variable and used the values in the dictionary as the levels. 
+
+```{r, echo = F}
+beef$city <- recode_factor(factor(beef$ city),
+                           `1` = "Cali",
+                           `2` = "Popayan",
+                           `3` = "Mercaderes",
+                           `4` = "Bordo")
+
+beef$gen <- recode_factor(factor(beef$gen),
+                          `1` = "Male",
+                          `2` = "Female")
+
+beef$study <- recode_factor(factor(beef$study), 
+                            `1` = "Incomplete primary",
+                            `2` = "Full primary",
+                            `3` = "Incomplete secondary",
+                            `4` = "Full secondary",
+                            `5` = "Non university superior (technical)",
+                            `6` = "University incomplete",
+                            `7` = "University complete",
+                            `8` = "Postgraduate")
+
+beef$strata <- recode_factor(factor(beef$strata), 
+                            `1` = "Sixth highest strata",
+                            `2` = "Fifth highest strata",
+                            `3` = "Fourth highest strata",
+                            `4` = "Third highest strata",
+                            `5` = "Second highest strata",
+                            `6` = "Highest strata")
+
+beef$preference1 <- recode_factor(factor(beef$preference1), 
+                            `1` = "Beef",
+                            `2` = "Chicken",
+                            `3` = "Fish",
+                            `4` = "Pork",
+                            `5` = "Other")
+
+beef$conoc_ambien <- recode_factor(factor(beef$conoc_ambien), 
+                            `1` = "Not knowledgeable at all",
+                            `2` = "Slightly knowledgeable",
+                            `3` = "Moderately knowledgeable",
+                            `4` = "Very knowledgeable",
+                            `5` = "Extremely knowledgeable")
+
+beef$conoc_ambien <- recode_factor(factor(beef$conoc_ambien), 
+                            `1` = "Not knowledgeable at all",
+                            `2` = "Slightly knowledgeable",
+                            `3` = "Moderately knowledgeable",
+                            `4` = "Very knowledgeable",
+                            `5` = "Extremely knowledgeable")
+
+beef$pay_more <- recode_factor(factor(beef$pay_more),
+                               `0` = "No",
+                               `1` = "Yes")
+
+# beef$why_more <- recode_factor(factor(beef$why_more),
+#                                `1` = "Custom", 
+#                                `2` = "Culture", 
+#                                `3` = "Diet", 
+#                                `4` = "Availability", 
+#                                `5` = "Economy", 
+#                                `6` = "Ease of preparation", 
+#                                `7` = "Taste", 
+#                                `8` = "Health", 
+#                                `9` = "Vary")
+
+beef$where_beef <- recode_factor(factor(beef$where_beef),
+                                 `0` = "Home",
+                                 `1` = "Out of Home",
+                                 `0.5` = "In both places")
+
+# convert currency to numeric
+beef$how_much_more_pound  <- parse_number(beef$how_much_more_pound)
+```
+
+# Correlation between willingness to pay and socio-demographic vars
+
+Age
+```{r, echo = F}
+beef$how_much_more_pound  <- parse_number(beef$how_much_more_pound)
+
+cor.test(beef$age, beef$how_much_more_pound, use = "complete.obs")$estimate
+cor.test(beef$age, beef$how_much_more_pound, use = "complete.obs")$p.value
+```
+
+Education
+```{r, echo = F}
+cor.test(beef$study, beef$how_much_more_pound, use = "complete.obs")$estimate
+cor.test(beef$study, beef$how_much_more_pound, use = "complete.obs")$p.value
+```
+
+Socioeconomic status
+```{r, echo = F}
+cor.test(beef$strata, beef$how_much_more_pound, use = "complete.obs")$estimate
+cor.test(beef$study, beef$how_much_more_pound, use = "complete.obs")$p.value
 ```

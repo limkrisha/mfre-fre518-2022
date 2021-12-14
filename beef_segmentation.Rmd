@@ -1,0 +1,24 @@
+---
+title: "Beef Segmentation Analysis"
+author: "Krisha Lim"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data Cleaning
+
+First we load the packages we will use for this analysis.
+
+```{r}
+pacman::p_load(dplyr, tidyverse, ggplot2, here, readxl, janitor, modelsummary, kableExtra, cluster, factoextra)
+```
+
+The dataset for this case study is from the CIAT - International Center for Tropical Agriculture downloaded from the [Harvard Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FMGTQF). The data comes from a survey questionnaire administered to 354 randomly selected meat consumers in Cali, Popayan, and in the municipalities of Mercaderes and Patia in Colombia. 
+
+```{r}
+beef <- read.csv(here("data", "beef_consumerdata.csv")) %>%
+  clean_names()
+```

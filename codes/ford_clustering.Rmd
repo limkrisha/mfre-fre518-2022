@@ -107,45 +107,81 @@ ct_gender <- datasummary_crosstab(preference_group ~ gender,
                      statistic = 1 ~ Percent("row"), 
                      data = ford, 
                      title = 'Crosstab of Preference Group and Gender', 
-                     output = 'kableExtra')
+                     output = 'kableExtra',
+                     fmt = 0)
 
 ct_marital <- datasummary_crosstab(preference_group ~ marital_status, 
                                   statistic = 1 ~ Percent("row"), 
                                   data = ford, 
                                   title = 'Crosstab of Preference Group and Marital Status', 
-                                  output = 'latex')
+                                  fmt = 0)
 
 ct_firstcar <- datasummary_crosstab(preference_group ~ x1st_time_purchase, 
                                    statistic = 1 ~ Percent("row"), 
                                    title = 'Crosstab of Preference Group and First Car Purhcase', 
-                                   data = ford)
+                                   data = ford, 
+                                   fmt = 0)
 
 ct_kids <- datasummary_crosstab(preference_group ~ children_category, 
                                 statistic = 1 ~ Percent("row"), 
                                 title = 'Crosstab of Preference Group and Number of Kids', 
-                                data = ford)
+                                data = ford,
+                                fmt = 0)
 
 ct_income <- datasummary_crosstab(preference_group ~ income_category, 
                                 statistic = 1 ~ Percent("row"), 
                                 title = 'Crosstab of Preference Group and Income Category', 
-                                data = ford)
+                                data = ford,
+                                fmt = 0)
 
 ct_age <- datasummary_crosstab(preference_group ~ age_category, 
                                statistic = 1 ~ Percent("row"), 
                                title = 'Crosstab of Preference Group and Age Category', 
-                               data = ford)
+                               data = ford, 
+                               fmt = 0)
 ```
 
-**\textcolor{blue}{The results are in line with Student number 76174135.}**
+\newpage
+
+**\textcolor{blue}{Results are the same as the answer sheet}**
+
+\textcolor{blue}{Choosers skewed 54\% female, non-choosers 50\%}
 
 ```{r}
 ct_gender %>% kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+\textcolor{blue}{Choosers skewed 57\% married, non-choosers 47\% married}
+
+```{r}
 ct_marital %>% kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+\textcolor{blue}{Choosers and non-choosers both 89\% not first car purchase}
+
+```{r}
 ct_firstcar %>% kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+\textcolor{blue}{Choosers skewed 54\% no kids, non-choosers 62\% no kids}
+
+```{r}
 ct_kids %>% kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+\textcolor{blue}{Choosers skewed 24\% 250-300K income, non-choosers 17\% 250-300K income}
+
+```{r}
 ct_income %>% kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+\textcolor{blue}{Choosers skewed 31\% in the 40-44 age group, non-choosers 21\%}
+
+```{r}
 ct_age %>% kable_styling(latex_options = c("striped", "hold_position"))
 ```
+
+\newpage
 
 # Clustering Analysis
 
@@ -210,6 +246,8 @@ c1_income %>% kable_styling(latex_options = c("striped", "hold_position"))
 c1_age %>% kable_styling(latex_options = c("striped", "hold_position"))
 ```
 
+\newpage
+
 # Appendix
 
 ```{r}
@@ -224,4 +262,10 @@ fviz_cluster(k4, data = ford_psyc)
 # 5 cluster analysis
 k5$centers
 fviz_cluster(k5, data = ford_psyc)
+
+# optimal clusters - elbow method
+fviz_nbclust(ford_psyc, kmeans, method = "wss")
+
+# optimal clusters - silhouette method
+fviz_nbclust(ford_psyc, kmeans, method = "silhouette")
 ```

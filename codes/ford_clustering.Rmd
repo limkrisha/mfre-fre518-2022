@@ -1,0 +1,227 @@
+---
+title: "Ford Ka Clustering Analysis"
+author: '**FRE518:** Survey Design and Data Analysis'
+output:
+  bookdown::pdf_document2:
+    toc: false
+    extra_dependencies: ["float"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set()
+options("modelsummary_format_numeric_latex" = "plain")
+```
+
+# Getting started
+
+**1a.** Create a folder called FRE518 Assignment 1 in your computer (you can name it whatever you like). Then create two subfolders called `Data` and `Code`, respectively. 
+
+Open up RStudio and start a new R Project. This project should be associated with this assignment's folder (File -> New Project -> Existing Directory -> FRE518 Assignment 1 folder). You will submit this zip folder in Canvas as part of your assignment. 
+
+Start a new `RMarkdown` file (File -> New file -> R Markdown) and save this file in the `Code` folder.
+
+**1b.** Load the `{pacman}` package. Now use the `p_load()` function to load the following packages: `here`, `dplyr`, `tiydverse`, `readxl`, `janitor`, `modelsummary`, `gtsummary`, `cluster`, `factoextra`, and `kableExtra`. 
+
+```{r}
+pacman::p_load(dplyr, tidyverse, ggplot2, here, readxl, janitor, modelsummary, 
+               kableExtra, cluster, factoextra, gtsummary)
+```
+
+**1c.** Download the dataset from Canvas. Save it in the `Data` subfolder of your FRE518 Assignment 1 folder. 
+
+**1d.** Read the the demographic and psychographic sheets into R using the `read_excel()` function. *Hint: You can use the arguments `sheet = sheet_name` and `skip = #_of_rows_to_skip` to load these files without having to make any changes to the Excel file uploaded on Canvas. Then merge these two dataframes by `respondent_id` using the `left_join` function.*
+
+You will notice that some of the variable names are more than one word, and some are capitalized. While this is okay, it might just be more time consuming to call these variables later on. So you can use the `clean_names()` function from the [`{janitor}`](https://www.rdocumentation.org/packages/janitor/versions/1.2.0/topics/clean_names) package to "clean" the variable names.
+
+```{r}
+# Read in the data
+dg <- read_excel(here("data", "Ford Ka (Student).xls"), 
+                 sheet = "Demographic Data", 
+                 skip = 6) %>%
+  clean_names()
+
+psyc <- read_excel(here("data", "Ford Ka (Student).xls"), 
+                   sheet = "Psychographic Data", 
+                   skip = 6) %>%
+  clean_names()
+
+# Merge the two files together
+ford <- left_join(dg, psyc, by = c("respondent_number")) 
+```
+
+**1e.** All variables are stored as numeric (*you can check with the `glimpse()` function*), which is in the format that we need to do the clustering analysis. It may be helpful to label the demographic variables based on their definition. One way to do this in R is to convert the variables to factors because R stores these variables as numeric but can display text when printed. 
+
+Use the `recode_factor()` to convert the following variables to factors: `preference_group`, `gender`, `x1st_time_purchase`, `age_category`, `children_category`, `income_category`. 
+
+```{r}
+# manually factor variables
+ford$preference_group <- recode_factor(factor(ford$preference_group), 
+                                     `1` = "Ka Chooser (top 3)",
+                                     `2` = "Ka Non-Chooser (bottom 3)",
+                                     `3` = "Middle (middle 4)")
+
+ford$gender <- recode_factor(factor(ford$gender), 
+                           `1` = "Male",
+                           `2` = "Female")
+
+ford$marital_status <- recode_factor(factor(ford$marital_status), 
+                                   `1` = "Married", 
+                                   `2` = "Living Together", 
+                                   `3` = "Single")
+
+ford$x1st_time_purchase <- recode_factor(factor(ford$x1st_time_purchase), 
+                                       `1` = "Yes", 
+                                       `2` = "No")
+
+ford$age_category <- recode_factor(factor(ford$age_category), 
+                                 `1` = "<25", 
+                                 `2` = "25-29", 
+                                 `3` = "30-34", 
+                                 `4` = "35-39", 
+                                 `5` = "40-44", 
+                                 `6` = ">44")
+
+ford$children_category <- recode_factor(factor(ford$children_category), 
+                                      `0` = "0 child", 
+                                      `1` = "1 child", 
+                                      `2` = ">1 child")
+
+ford$income_category <- recode_factor(factor(ford$income_category), 
+                                    `1` = "<100K", 
+                                    `2` = "100K-150K", 
+                                    `3` = "150K-200K",
+                                    `4` = "200K-250K", 
+                                    `5` = "250K-300K", 
+                                    `6`= ">300K")
+```
+
+\newpage
+
+# Crosstabs Analysis 
+
+Run a cross-tab analysis to check whether different demographic variables separate "Ka Choosers" from "Ka Non-Choosers". You can use either the `datasummary_crosstab()` or `tbl_cross()` functions or another function of your choice. Make sure that you show the row percentages. 
+
+```{r, warning = F, message = F}
+# using {datasummary} package
+ct_gender <- datasummary_crosstab(preference_group ~ gender, 
+                     statistic = 1 ~ Percent("row"), 
+                     data = ford, 
+                     title = 'Crosstab of Preference Group and Gender', 
+                     output = 'kableExtra')
+
+ct_marital <- datasummary_crosstab(preference_group ~ marital_status, 
+                                  statistic = 1 ~ Percent("row"), 
+                                  data = ford, 
+                                  title = 'Crosstab of Preference Group and Marital Status', 
+                                  output = 'latex')
+
+ct_firstcar <- datasummary_crosstab(preference_group ~ x1st_time_purchase, 
+                                   statistic = 1 ~ Percent("row"), 
+                                   title = 'Crosstab of Preference Group and First Car Purhcase', 
+                                   data = ford)
+
+ct_kids <- datasummary_crosstab(preference_group ~ children_category, 
+                                statistic = 1 ~ Percent("row"), 
+                                title = 'Crosstab of Preference Group and Number of Kids', 
+                                data = ford)
+
+ct_income <- datasummary_crosstab(preference_group ~ income_category, 
+                                statistic = 1 ~ Percent("row"), 
+                                title = 'Crosstab of Preference Group and Income Category', 
+                                data = ford)
+
+ct_age <- datasummary_crosstab(preference_group ~ age_category, 
+                               statistic = 1 ~ Percent("row"), 
+                               title = 'Crosstab of Preference Group and Age Category', 
+                               data = ford)
+```
+
+**\textcolor{blue}{The results are in line with Student number 76174135.}**
+
+```{r}
+ct_gender %>% kable_styling(latex_options = c("striped", "hold_position"))
+ct_marital %>% kable_styling(latex_options = c("striped", "hold_position"))
+ct_firstcar %>% kable_styling(latex_options = c("striped", "hold_position"))
+ct_kids %>% kable_styling(latex_options = c("striped", "hold_position"))
+ct_income %>% kable_styling(latex_options = c("striped", "hold_position"))
+ct_age %>% kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+# Clustering Analysis
+
+**3a.** Create a new dataframe called `ford_psyc` that contains only the `ford` and `q1:q62` variables only. 
+
+**3b.** Use the `kmeans()` function to run the clustering analysis.
+
+**3c.** Make sure you use the `set.seed(insert_random_number)` function to ensure I can replicate your answers. 
+
+```{r}
+ford_psyc <- select(ford, q1:q62)
+
+set.seed(2022)
+k3 <- kmeans(ford_psyc, centers = 3, nstart = 25)  
+set.seed(2022)
+k4 <- kmeans(ford_psyc, centers = 4, nstart = 25)  
+set.seed(2022)
+k5 <- kmeans(ford_psyc, centers = 5, nstart = 25)  
+```
+
+**\textcolor{blue}{The results of the clustering are presented in the Appendix.}**
+
+  - The three clusters have the following sizes: **`r k3$size`**
+  - The four clusters have the following sizes: **`r k4$size`** \textcolor{blue}{These results replicate the numbers in the file Ford Ka 4-Cluster Results - no variables missing.}
+  - The five clusters have the following sizes: **`r k5$size`** \textcolor{blue}{I don't get the same small cluster as noted by the students}
+
+# Further Analysis - Using the output from the 4 cluster analysis
+
+**4a.** Using the `cbind()` function, join the `ford` dataframe and the `cluster` variable from your `k4` object.  
+
+```{r}
+ford_cluster <- cbind(ford, k4["cluster"])
+```
+
+**4b.** Run a cross-tab analysis on the 4 segments to identify choice preferences and demographic characteristics of each segment.
+
+\textcolor{blue}{The sample results below show the analysis for Cluster 1 (their cluster 3) with size `r table(ford_cluster$cluster)[1]` or `r paste0(round(table(ford_cluster$cluster)[1]/250*100, 0), "%")` of the sample.
+
+  - **\textcolor{blue}{Gender:}** \textcolor{blue}{I also get an even 50/50 split for this whole cluster, but not an even split if we look at Ka Chooser only.}
+  - **\textcolor{blue}{Income:}** \textcolor{blue}{I'm getting that they are high (>300K) income and between 100-150K, not <100K}
+  - **\textcolor{blue}{Age:}** \textcolor{blue}{I also get majority <44 years old, but as noted above, this number is for the whole cluster and not just Ka Chooser}
+
+
+```{r}
+c1_gender <- datasummary_crosstab(preference_group ~ gender, 
+                     statistic = 1 ~ Percent("row"), 
+                     data = ford_cluster %>% filter(cluster == 1), 
+                     title = 'Crosstab of Preference Group and Gender (Cluster 1)')
+
+c1_income <- datasummary_crosstab(preference_group ~ income_category, 
+                     statistic = 1 ~ Percent("row"), 
+                     data = ford_cluster %>% filter(cluster == 1), 
+                     title = ' Crosstab of Preference Group and Income (Cluster 1)')
+
+c1_age <- datasummary_crosstab(preference_group ~ age_category, 
+                     statistic = 1 ~ Percent("row"), 
+                     data = ford_cluster %>% filter(cluster == 1), 
+                     title = ' Crosstab of Preference Group and Age (Cluster 1)')
+
+c1_gender %>% kable_styling(latex_options = c("striped", "hold_position"))
+c1_income %>% kable_styling(latex_options = c("striped", "hold_position"))
+c1_age %>% kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+# Appendix
+
+```{r}
+# 3 cluster analysis
+k3$centers
+fviz_cluster(k3, data = ford_psyc)
+
+# 4 cluster analysis
+k4$centers
+fviz_cluster(k4, data = ford_psyc)
+
+# 5 cluster analysis
+k5$centers
+fviz_cluster(k5, data = ford_psyc)
+```

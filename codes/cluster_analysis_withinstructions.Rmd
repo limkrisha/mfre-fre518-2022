@@ -1,0 +1,180 @@
+---
+title: "Ford Ka Clustering Analysis: Output Only"
+author: '**FRE518:** Survey Design and Data Analysis'
+output:
+  bookdown::pdf_document2:
+    toc: false
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{longtable}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set()
+options("modelsummary_format_numeric_latex" = "plain")
+```
+
+# Load packages and Data
+
+  - **Use `pacman::p_load()` to load the relevant packages**
+  - **Use `read_excel()` to read the demographic and psychographic sheets from the Excel spreadsheet**
+    - *Tip 1: Use `sheet = "sheet_name"` to load a specific sheet by name*
+    - *Tip 2: Use `skip = number_of_rows_to_skip` to indicate the number of empty rows R should skip when reading the spreadsheet in*
+    - *Tip 3: Use `clean_names(., "upper_camel")` to rename variable names with the upper camel case*
+  - **Use `left_join()` to join the two dataframes together**
+
+```{r}
+# Load packages
+pacman::p_load(dplyr, tidyverse, ggplot2, here, readxl, janitor, modelsummary, kableExtra, cluster)
+
+# Read in the data
+dg <- read_excel(here("data", "Ford Ka (Student).xls"), 
+                 sheet = "Demographic Data", 
+                 skip = 6) %>%
+  clean_names(., "upper_camel") %>%
+  rename(FirstTimePurchase = X1StTimePurchase)
+
+psyc <- read_excel(here("data", "Ford Ka (Student).xls"), 
+                   sheet = "Psychographic Data", 
+                   skip = 6) %>%
+  clean_names(., "upper_camel")
+
+psyc_q <- read_excel(here("data", "Ford Ka (Student).xls"), 
+                   sheet = "Psychographic questionnaire", 
+                   skip = 6) %>%
+  clean_names(., "upper_camel")
+
+
+# Merge the two files together
+ford <- left_join(dg, psyc, by = c("RespondentNumber")) 
+```
+
+# Data Cleaning
+
+- Use `mutate()` and `factor()` to change the following variables to factors: `PreferenceGroup`, `Gender`, `MaritalStatus`, `FirstTimePurchase`, `AgeCategory`, `ChildrenCategory`, `IncomeCategory`
+
+```{r}
+# manually factor variables
+ford <- ford %>%
+  mutate(PreferenceGroup = factor(PreferenceGroup, labels = c("Ka Chooser", 
+                                                                "Ka Non-Chooser",
+                                                                "Middle")), 
+         Gender = factor(Gender, labels = c("Male", "Female")),
+         MaritalStatus = factor(MaritalStatus, labels = c("Married", "Living Together",
+                                                            "Single")),
+         FirstTimePurchase = factor(FirstTimePurchase, labels = c("Yes", "No")),
+         AgeCategory = factor(AgeCategory, labels = c("<25", "25-29", "30-34", 
+                                                        "35-39", "40-44", ">44")), 
+         ChildrenCategory = factor(ChildrenCategory, labels = c("0 child", "1 child", 
+                                                                  ">1 child")),
+         IncomeCategory = factor(IncomeCategory, labels = c("<100K", "100K-150K",
+                                                              "150K-200K", "200K-250K", 
+                                                              "250K-300K", ">300K")))
+```
+
+# Crosstabs Analysis 
+
+*Run a cross-tab analysis on choice and interpret the output by answering the following:*
+
+  - *Which, if any, demographic variables have a relationship with choice? Explain what you find.*
+  - *How do the results compare to your earlier opinion based on your earlier analysis of the case?*
+  - *What implications do the results have on the marketing plan?*
+
+**Use `datasummary_balance()` to conduct your crosstabs analysis**
+  
+  - *Tip: Since we are only interested in comparing answers between Ka Chooser and Ka Non-Chooser, you can drop the empty factor level (i.e., "Middle") using the `droplevels()` command after your `filter()` command*
+  - *Pro Tip: One cool thing with the [`{modelsummary}`](https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html) package is that it works well with [`{KableExtra}`](https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html). Check out this [link](https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_pdf.pdf) to learn different ways to customize your table if rendered to PDF. For example, adding `%>% kable_styling(latex_options = c("striped", "hold_position"))` after `datasummary_balance()`  will highlight alternating rows for easier reading and will keep the table in that position of the code versus letting R determine its placement in your document.* 
+
+```{r}
+# the droplevels() code removes the "Middle" factor 
+datasummary_balance(~PreferenceGroup,
+                     data = ford %>% filter(PreferenceGroup != "Middle") %>% 
+                      droplevels() %>%
+                      select(PreferenceGroup, Gender, MaritalStatus, 
+                             FirstTimePurchase, AgeCategory, ChildrenCategory,
+                             IncomeCategory),
+                    dinm = F) %>% 
+   kable_styling(latex_options = c("striped", "hold_position")) 
+```
+\newpage
+
+# Clustering Analysis
+
+**Run 3 different cluster analyses and interpret the output by answering the following:**
+
+  - Create a new dataframe called `ford_psyc` that contains the psychographic questions only
+  - Use `set.seed(2022)` to ensure that we will have the same answer as I have
+  - Use `kmeans()` to run a 3 cluster and 4 cluster analysis. Read documentation [here](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/kmeans) or follow the examples in the readings posted in Canvas.
+  - Create 2 new columns in the `ford` dataframe - one contains the cluster assignment from the 3 cluster analysis (call this variable `Cluster3`), and the other column contains the cluster assignment from the 4 cluster analysis (call this variable `Cluster4`)
+
+```{r, echo = F}
+ford_psyc <- select(ford, Q1:Q62)
+
+set.seed(2022)
+k3 <- kmeans(ford_psyc, centers = 3, nstart = 25)  
+k4 <- kmeans(ford_psyc, centers = 4, nstart = 25)
+# set.seed(2022)
+# k5 <- kmeans(ford_psyc, centers = 5, nstart = 25)
+
+#attach cluster information to ford
+ford$Cluster3 <- k3$cluster
+ford$Cluster4 <- k4$cluster
+# ford$Cluster5 <- k5$cluster
+```
+
+\newpage
+
+**Use `table()` to determine the difference in cluster assignment between the 3-cluster and 4-cluster analysis.**
+
+```{r, echo = F}
+table(ford$Cluster3, ford$Cluster4)
+```
+    
+**Use `datasummary_balance()` to compare the answers in the psychographic questions between the cluster that was split from the 3-cluster analysis (Clusters 2 and 3 if you use the `set.seed(2022)` function**
+
+  - *Tip: You can load in the psychographic questions as a dataframe and then use `rename_with()` to rename the variable names in `ford` with the psychographic statements. This way, you don't have to check the questions to know what `Q1, Q2, ...` means. While it renders nicely in html, it does not render nicely in a pdf output, i.e. `statements <- ford %>% rename_with(~psyc_q$Statement, starts_with("q"))`*
+
+```{r, echo = F}
+# run crosstabs of cluster 1 and 4 of k4
+
+# # rename from q1 to the statement itself for easier interpretation
+# statements <- ford %>%
+#   rename_with(~psyc_q$Statement, starts_with("q"))
+
+datasummary_balance(~Cluster4,
+                    data = ford %>% filter(Cluster4 == 2 | Cluster4 == 3) %>% 
+                      droplevels() %>%
+                      select(Cluster4, Q1:Q62),                    
+                    output = 'kableExtra',
+                    booktabs = T,
+                    longtable = T) %>% 
+  kable_styling(latex_options = c("striped", "hold_position")) 
+```
+
+# 4-Cluster Analysis
+
+**Use `datasummary_balance()` to do a crosstab analysis between the 4 segments**
+  
+```{r, echo = F}
+datasummary_balance(~Cluster4,
+                    data = ford %>% filter(PreferenceGroup != "Middle") %>% 
+                      droplevels() %>%
+                      select(Cluster4, PreferenceGroup, Gender, MaritalStatus, 
+                             FirstTimePurchase, AgeCategory, ChildrenCategory,
+                             IncomeCategory),
+                    dinm = F,                    
+                    output = 'kableExtra',
+                    booktabs = T,
+                    longtable = T) %>% 
+  kable_styling(latex_options = c("striped", "hold_position")) 
+
+datasummary_balance(~Cluster4,
+                    data = ford %>% filter(PreferenceGroup != "Middle") %>% 
+                      droplevels() %>%
+                      select(Cluster4, Q1:Q62),
+                    dinm = F,
+                    output = 'kableExtra',
+                    booktabs = T,
+                    longtable = T) %>% 
+  kable_styling(latex_options = c("striped", "hold_position")) 
+```
